@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-
+import { supabase } from "./lib/supabase";
 import "./App.css";
 
-const API = "http://127.0.0.1:8000";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 function getYouTubeId(url) {
   try {
@@ -38,16 +38,53 @@ function AuthModal({ mode, onClose, onSwitch, onLogin }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // Mock auth — store user locally
-    const user = {
-      name: mode === "signup" ? name : email.split("@")[0],
-      email,
-    };
-    onLogin(user);
-    onClose();
+    setAuthError("");
+    setAuthMessage("");
+    setAuthLoading(true);
+
+    try {
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: { full_name: name.trim() },
+          },
+        });
+
+        if (error) throw error;
+
+        if (!data.session) {
+          setAuthMessage(
+            "Account created! Check your email to confirm your account, then sign in."
+          );
+          return;
+        }
+
+        onLogin(data.user);
+        onClose();
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) throw error;
+
+        onLogin(data.user);
+        onClose();
+      }
+    } catch (err) {
+      setAuthError(err?.message || "Authentication failed. Please try again.");
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
   return (
@@ -69,6 +106,12 @@ function AuthModal({ mode, onClose, onSwitch, onLogin }) {
           <div className="modal-divider">or</div>
 
           <form onSubmit={handleSubmit}>
+            {authError && (
+              <p className="message error" role="alert">{authError}</p>
+            )}
+            {authMessage && (
+              <p className="message success" role="status">{authMessage}</p>
+            )}
             {mode === "signup" && (
               <div className="form-group">
                 <label htmlFor="auth-name">Full name</label>
@@ -104,8 +147,16 @@ function AuthModal({ mode, onClose, onSwitch, onLogin }) {
                 required
               />
             </div>
-            <button className="btn-modal-submit" type="submit">
-              {mode === "signin" ? "Sign In" : "Create Account"}
+            <button
+              className="btn-modal-submit"
+              type="submit"
+              disabled={authLoading}
+            >
+              {authLoading
+                ? "Please wait..."
+                : mode === "signin"
+                  ? "Sign In"
+                  : "Create Account"}
             </button>
           </form>
         </div>
@@ -120,6 +171,15 @@ function AuthModal({ mode, onClose, onSwitch, onLogin }) {
       </div>
     </div>
   );
+}
+
+function toAppUser(authUser) {
+  const email = authUser?.email ?? "";
+  return {
+    id: authUser?.id,
+    email,
+    name: authUser?.user_metadata?.full_name || email.split("@")[0] || "Learner",
+  };
 }
 
 /* ============================================================
@@ -150,26 +210,57 @@ function App() {
   const [activeTab, setActiveTab] = useState("transcript");
 
   // ---------- Auth ----------
-  const [authModal, setAuthModal] = useState(null); // null | "signin" | "signup"
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem("ahgv_user");
-      return saved ? JSON.parse(saved) : null;
-    } catch { return null; }
-  });
+  const [authModal, setAuthModal] = useState(null);
+  const [user, setUser] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  function handleLogin(userData) {
-    setUser(userData);
-    localStorage.setItem("ahgv_user", JSON.stringify(userData));
+  useEffect(() => {
+    let active = true;
+
+    async function loadSession() {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!active) return;
+
+      if (error) {
+        console.error("Could not restore session:", error.message);
+        return;
+      }
+
+      const authUser = data.session?.user ?? null;
+      setUser(authUser ? toAppUser(authUser) : null);
+    }
+
+    loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authUser = session?.user ?? null;
+      setUser(authUser ? toAppUser(authUser) : null);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleLogin(userData) {
+    setUser(toAppUser(userData));
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setError(`Sign out failed: ${error.message}`);
+      return;
+    }
+
     setUser(null);
-    localStorage.removeItem("ahgv_user");
     setShowUserMenu(false);
   }
-
   // ---------- YouTube IFrame Player API ----------
   useEffect(() => {
     if (!youtubeId) return undefined;
@@ -192,7 +283,8 @@ function App() {
           },
           onStateChange: (event) => {
             if (cancelled) return;
-            setDuration(event.target.getDuration() || duration || 0);
+            const playerDuration = event.target.getDuration();
+            setDuration((currentDuration) => playerDuration || currentDuration || 0);
           },
         },
       });
