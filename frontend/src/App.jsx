@@ -197,6 +197,7 @@ function App() {
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState(null);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [pastedTranscript, setPastedTranscript] = useState("");
 
   // ---------- Q&A ----------
   const [question, setQuestion] = useState("");
@@ -402,6 +403,28 @@ function App() {
     } finally {
       setTranscriptLoading(false);
     }
+  }
+
+  function loadPastedTranscript() {
+    const raw = pastedTranscript.trim();
+    if (!raw) {
+      setError("Paste the lecture transcript first.");
+      return;
+    }
+    const lines = raw.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);
+    const segments = lines.map((line, index) => {
+      const cleaned = line.replace(/^\\[?\\d{1,2}:\\d{2}(?::\\d{2})?\\]?\\s*/, "").trim();
+      return { start: index * 8, end: (index + 1) * 8, text: cleaned || line };
+    }).filter((segment) => segment.text);
+    if (!segments.length) {
+      setError("No readable transcript text found.");
+      return;
+    }
+    setTranscript({ video_id: youtubeId || "manual", language: "pasted", segments });
+    setCurrentTime(0);
+    setChatHistory([]);
+    setError("");
+    setNotice(`Transcript loaded manually: ${segments.length} segments. You can ask the AI Tutor now.`);
   }
 
   async function askQuestion(event) {
@@ -794,11 +817,28 @@ function App() {
                         </div>
                       ))
                     ) : (
-                      <p className="tab-empty">
-                        {transcriptLoading
-                          ? "Fetching captions..."
-                          : "No transcript loaded. Load a YouTube video with captions."}
-                      </p>
+                      <div style={{ padding: "12px", width: "100%", boxSizing: "border-box" }}>
+                        <p className="tab-empty">
+                          {transcriptLoading
+                            ? "Fetching captions..."
+                            : "YouTube captions may be blocked on the server. Paste a transcript below to use the AI Tutor."}
+                        </p>
+                        <textarea
+                          value={pastedTranscript}
+                          onChange={(e) => setPastedTranscript(e.target.value)}
+                          placeholder="Paste transcript text here..."
+                          rows={5}
+                          style={{ width: "100%", boxSizing: "border-box", marginTop: "8px", padding: "10px", borderRadius: "10px", border: "1px solid #ddd", resize: "vertical" }}
+                        />
+                        <button
+                          type="button"
+                          className="jump-button"
+                          onClick={loadPastedTranscript}
+                          style={{ marginTop: "8px" }}
+                        >
+                          Use Pasted Transcript
+                        </button>
+                      </div>
                     )}
                   </>
                 )}
