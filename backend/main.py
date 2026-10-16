@@ -21,10 +21,9 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # Ordered list of models to try – if one is overloaded the next is attempted.
 GEMINI_MODELS = [
+    "gemini-3.8-flash",
     "gemini-3.5-flash-lite",
     "gemini-3.1-flash-lite",
-    "gemini-3.1-flash-lite-preview",
-    "gemini-3.8-flash",
 ]
 
 
@@ -159,21 +158,30 @@ def ask_question(request: QuestionRequest):
             detail="No lecture transcript provided. Load a YouTube lecture with captions first.",
         )
 
-    # Timestamp-aware grounding: never retrieve transcript segments that have
-    # not finished by the current playback position.
-    current_time = request.current_time
-    available = [
+    # Prefer transcript already played. Near the start of a video, use the
+    # nearest available transcript context so the tutor can answer immediately.
+    current_time = max(0.0, request.current_time)
+    valid_segments = [
         segment for segment in request.transcript
-        if segment.end <= current_time + 0.05
-        and segment.text.strip()
+        if segment.text.strip()
         and segment.start >= 0
         and segment.end >= segment.start
     ]
+    available = [
+        segment for segment in valid_segments
+        if segment.end <= current_time + 0.05
+    ]
+    if not available and valid_segments:
+        available = sorted(
+            valid_segments,
+            key=lambda segment: abs(segment.start - current_time),
+        )[:12]
+        available.sort(key=lambda segment: segment.start)
 
     if not available:
         raise HTTPException(
             status_code=400,
-            detail="There is not enough transcript before the current video position. Play a little further, then ask again.",
+            detail="No usable transcript segments were provided. Load a video with captions and try again.",
         )
 
     def tokenize(value: str) -> set[str]:
@@ -249,7 +257,7 @@ def ask_question(request: QuestionRequest):
 
 Answer the student's question using ONLY the transcript evidence below.
 IMPORTANT RULES:
-- The transcript contains only material that ended by the current playback position. Do not mention or reveal later lecture material.
+- Prefer material already played. If the question is asked near the start and no earlier material exists, use only the nearest transcript segments provided as initial context. Do not claim that context has already been played.
 - First answer the actual question directly. For "explain this/it", explain the idea in the nearby transcript in simple language.
 - Prefer clear, natural Hindi/Hinglish when the student asks in Hindi/Hinglish; otherwise use the question's language.
 - Teach, do not merely paraphrase the transcript: explain the meaning in simple words and give a small example only when the transcript supports it. Clearly label any simple illustrative analogy as an analogy.
