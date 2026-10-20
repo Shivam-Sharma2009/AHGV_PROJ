@@ -552,19 +552,33 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
     skipped = 0
     print(f"Invidious directory returned {len(instances)} entries; selecting up to 4 HTTPS instances")
     for item in instances:
-        if not isinstance(item, list) or len(item) < 2 or not isinstance(item[1], dict):
+        # The directory API commonly returns [domain, metadata], but tolerate
+        # dictionaries and bare domain strings too.
+        if isinstance(item, list) and len(item) >= 1:
+            base_value = item[0]
+        elif isinstance(item, dict):
+            base_value = item.get("uri") or item.get("url") or item.get("domain")
+        elif isinstance(item, str):
+            base_value = item
+        else:
             skipped += 1
+            print(f"Skipping unexpected Invidious directory entry type: {type(item).__name__}")
             continue
-        base_url, metadata = item[0], item[1]
-        parsed_base = urlparse(base_url if isinstance(base_url, str) else "")
-        # The instance directory's metadata shape can vary; the public directory
-        # itself is the source of candidate instances, so do not require an
-        # optional 'api' flag to be present.
+
+        if not isinstance(base_value, str):
+            skipped += 1
+            print("Skipping Invidious directory entry with no URL")
+            continue
+        base_url = base_value if "://" in base_value else "https://" + base_value
+        parsed_base = urlparse(base_url)
         if parsed_base.scheme != "https" or not parsed_base.netloc:
             skipped += 1
+            print(f"Skipping invalid Invidious instance URL: {base_value!r}")
             continue
+
         tried += 1
         if tried > 4:
+            tried -= 1
             break
         print(f"Trying Invidious caption fallback instance {tried}: {parsed_base.netloc}")
         try:
