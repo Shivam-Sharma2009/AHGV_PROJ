@@ -218,7 +218,6 @@ function App() {
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState(null);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
-  const [manualTranscriptText, setManualTranscriptText] = useState("");
 
   // ---------- Q&A ----------
   const [question, setQuestion] = useState("");
@@ -440,40 +439,6 @@ function App() {
     } finally {
       setTranscriptLoading(false);
     }
-  }
-
-  function usePastedTranscript() {
-    const lines = manualTranscriptText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (!lines.length) {
-      setError("Paste the lecture transcript first. One sentence or caption per line works best.");
-      return;
-    }
-
-    const segments = lines.map((line, index) => {
-      const match = line.match(/^(?:(\d{1,2}:)?(\d{1,2}):(\d{2})\s+)?(.+)$/);
-      let start = index * 10;
-      let text = line;
-      if (match && match[4]) {
-        text = match[4];
-        if (match[1]) {
-          const hours = Number(match[1].slice(0, -1));
-          start = hours * 3600 + Number(match[2]) * 60 + Number(match[3]);
-        } else if (line.match(/^\d{1,2}:\d{2}\s+/)) {
-          start = Number(match[2]) * 60 + Number(match[3]);
-        }
-      }
-      return { start, end: start + 10, text };
-    });
-
-    setTranscript({ video_id: youtubeId, language: "pasted transcript", segments });
-    setCurrentTime(segments[segments.length - 1]?.end ?? 0);
-    setChatHistory([]);
-    setError("");
-    setNotice(`Transcript added: ${segments.length} lines. You can now ask the AI Tutor questions.`);
-    setManualTranscriptText("");
   }
 
   async function askQuestion(event) {
@@ -765,28 +730,6 @@ function App() {
       {/* Messages */}
       {error && <p className="message error" role="alert">{error}</p>}
       {notice && <p className="message success" role="status">{notice}</p>}
-
-      {youtubeId && !transcript?.segments?.length && error && (
-        <section className="transcript-fallback glass-card" aria-labelledby="transcript-fallback-title">
-          <div className="card-header">
-            <div className="card-header-left">
-              <div className="card-header-icon">📝</div>
-              <span className="card-header-title" id="transcript-fallback-title">Use captions manually</span>
-            </div>
-          </div>
-          <div className="transcript-fallback-body">
-            <p>YouTube can block caption requests from cloud servers. Paste captions or a transcript below to keep using the AI Tutor without changing the video.</p>
-            <textarea
-              value={manualTranscriptText}
-              onChange={(event) => setManualTranscriptText(event.target.value)}
-              placeholder={"Paste transcript here — one sentence or caption per line.\nOptional timestamps: 00:12 Introduction to Python"}
-              rows={6}
-              aria-label="Paste lecture transcript"
-            />
-            <button className="btn-start" type="button" onClick={usePastedTranscript}>Use transcript</button>
-          </div>
-        </section>
-      )}
 
       {/* ============================================================
           MAIN CONTENT — TWO-PANEL
