@@ -538,13 +538,10 @@ class YouTubeTranscriptRequest(BaseModel):
 
 
 def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | None:
-    """Best-effort free fallback via public Invidious instances; no user transcript upload."""
-    headers = {"User-Agent": "AHGV-Learning/1.0 (public transcript fallback)"}
+    """Best-effort free fallback via public Invidious instances; returns existing captions only."""
+    headers = {"User-Agent": "AHGV-Learning/1.0"}
     try:
-        request = Request(
-            "https://api.invidious.io/instances.json?sort_by=health",
-            headers=headers,
-        )
+        request = Request("https://api.invidious.io/instances.json?sort_by=health", headers=headers)
         with urlopen(request, timeout=5) as response:
             instances = json.loads(response.read().decode("utf-8"))
     except Exception as exc:
@@ -553,68 +550,63 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
 
     tried = 0
     for item in instances:
-        if tried >= 4:
-            break
         if not isinstance(item, list) or len(item) < 2 or not isinstance(item[1], dict):
             continue
-        base_url = item[0]
-        metadata = item[1]
+        base_url, metadata = item[0], item[1]
         parsed_base = urlparse(base_url if isinstance(base_url, str) else "")
         if parsed_base.scheme != "https" or not parsed_base.netloc or not metadata.get("api"):
             continue
         tried += 1
+        if tried > 4:
+            break
         try:
-            captions_request = Request(
-                urljoin(base_url.rstrip("/") + "/", f"api/v1/captions/{video_id}"),
-                headers=headers,
-            )
-            with urlopen(captions_request, timeout=5) as response:
+            captions_url = urljoin(base_url.rstrip("/") + "/", f"api/v1/captions/{video_id}")
+            with urlopen(Request(captions_url, headers=headers), timeout=5) as response:
                 caption_data = json.loads(response.read().decode("utf-8"))
             tracks = caption_data.get("captions", []) if isinstance(caption_data, dict) else []
             track = next(
                 (t for lang in languages for t in tracks
                  if isinstance(t, dict)
-                 and str(t.get("language_code", "")).lower().startswith(lang)),
+                 and str(t.get("languageCode", "")).lower().startswith(lang)),
                 None,
             )
             if not track or not track.get("url"):
                 continue
-            caption_url = urljoin(base_url, track["url"])
-            caption_request = Request(caption_url, headers=headers)
-            with urlopen(caption_request, timeout=8) as response:
-                xml_bytes = response.read()
-            root = ElementTree.fromstring(xml_bytes)
+            caption_url = urljoin(base_url.rstrip("/") + "/", track["url"].lstrip("/"))
+            with urlopen(Request(caption_url, headers=headers), timeout=8) as response:
+                caption_text = response.read().decode("utf-8", errors="replace")
+            # Invidious caption endpoints return WebVTT, not XML.
+            blocks = re.split(r"\\r?\\n\\s*\\r?\\n", caption_text.strip())
             segments = []
-            for node in root.iter():
-                if node.tag.rsplit("}", 1)[-1] not in ("text", "p"):
+            for block in blocks:
+                lines = [line.strip() for line in block.splitlines() if line.strip()]
+                timing_index = next((i for i, line in enumerate(lines) if "-->" in line), None)
+                if timing_index is None:
                     continue
-                text_value = "".join(node.itertext()).strip()
-                if not text_value:
-                    continue
-                start_value = node.attrib.get("start", node.attrib.get("t", "0"))
-                duration_value = node.attrib.get("dur", node.attrib.get("d", "4"))
+                timing = lines[timing_index].split("-->", 1)
                 try:
-                    start = float(start_value)
-                    duration = float(duration_value)
-                    # Some XML formats use milliseconds for t/d attributes.
-                    if "t" in node.attrib and "start" not in node.attrib:
-                        start /= 1000
-                    if "d" in node.attrib and "dur" not in node.attrib:
-                        duration /= 1000
-                except (TypeError, ValueError):
+                    start_text = timing[0].strip().split()[0]
+                    end_text = timing[1].strip().split()[0]
+                    def to_seconds(value):
+                        parts = value.replace(",", ".").split(":")
+                        return sum(float(part) * (60 ** (len(parts) - i - 1)) for i, part in enumerate(parts))
+                    start_seconds = to_seconds(start_text)
+                    end_seconds = to_seconds(end_text)
+                except (ValueError, IndexError):
                     continue
-                segments.append({"start": start, "end": start + max(duration, 0.1), "text": text_value})
+                text_value = re.sub(r"<[^>]+>", "", " ".join(lines[timing_index + 1:])).strip()
+                text_value = text_value.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+                if text_value:
+                    segments.append({"start": start_seconds, "end": end_seconds, "text": text_value})
             if segments:
                 return {
                     "video_id": video_id,
-                    "language": track.get("language_code", "unknown"),
+                    "language": track.get("languageCode", "unknown"),
                     "segments": segments,
                     "transcript_source": "public_invidious_fallback",
                 }
-        except (HTTPError, URLError, TimeoutError, ValueError, KeyError, TypeError, ElementTree.ParseError) as exc:
-            print(f"Invidious fallback instance failed: {type(exc).__name__}: {exc}")
         except Exception as exc:
-            print(f"Invidious fallback unexpected error: {type(exc).__name__}: {exc}")
+            print(f"Invidious fallback instance failed: {type(exc).__name__}: {exc}")
     return None
 
 
