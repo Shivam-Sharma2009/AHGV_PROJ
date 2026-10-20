@@ -25,6 +25,94 @@
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Theme overrides */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #111827;
+  --surface-glass: rgba(17, 24, 39, 0.82);
+  --surface-card: rgba(31, 41, 55, 0.92);
+  --text-primary: #f3f4f6;
+  --text-secondary: #cbd5e1;
+  --text-muted: #9ca3af;
+  --border: rgba(167, 139, 250, 0.24);
+  --border-light: rgba(255, 255, 255, 0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] body {
+  background: #0b1020;
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .app {
+  color: var(--text-primary);
+  background:
+    radial-gradient(ellipse at 30% -10%, rgba(139, 92, 246, 0.18), transparent 50%),
+    radial-gradient(ellipse at 70% -5%, rgba(76, 29, 149, 0.14), transparent 45%),
+    linear-gradient(180deg, #0b1020 0%, #111827 45%, #0f172a 100%);
+}
+
+:root[data-theme="dark"] .navbar,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .transcript-panel,
+:root[data-theme="dark"] .chat-panel,
+:root[data-theme="dark"] .video-panel,
+:root[data-theme="dark"] .user-dropdown,
+:root[data-theme="dark"] .modal {
+  background-color: #111827;
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] .chat-input-bar,
+:root[data-theme="dark"] .chat-input-bar input {
+  background-color: #1f2937;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .chat-bubble.user {
+  background: #4c1d95;
+  color: #f5f3ff;
+}
+
+:root[data-theme="dark"] .chat-bubble.ai,
+:root[data-theme="dark"] .transcript-segment,
+:root[data-theme="dark"] .user-dropdown-divider {
+  border-color: #374151;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.theme-toggle:hover {
+  border-color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
 button { cursor: pointer; font: inherit; }
 button:disabled { cursor: not-allowed; opacity: 0.6; }
 input, textarea { font: inherit; }
