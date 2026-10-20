@@ -213,6 +213,22 @@ function App() {
   const [authModal, setAuthModal] = useState(null);
   const [user, setUser] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("ahgv-theme") === "dark" ? "dark" : "light";
+    } catch {
+      return "light";
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("ahgv-theme", theme);
+    } catch {
+      // Theme still works for the current session when storage is unavailable.
+    }
+  }, [theme]);
 
   useEffect(() => {
     let active = true;
@@ -548,6 +564,16 @@ function App() {
         </div>
 
         <div className="navbar-actions">
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+            <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+          </button>
           {user ? (
             <div className="user-menu-wrapper">
               <div
