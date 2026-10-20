@@ -549,13 +549,19 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
         return None
 
     tried = 0
-    print(f"Invidious directory returned {len(instances)} entries; checking up to 4 HTTPS API instances")
+    skipped = 0
+    print(f"Invidious directory returned {len(instances)} entries; selecting up to 4 HTTPS instances")
     for item in instances:
         if not isinstance(item, list) or len(item) < 2 or not isinstance(item[1], dict):
+            skipped += 1
             continue
         base_url, metadata = item[0], item[1]
         parsed_base = urlparse(base_url if isinstance(base_url, str) else "")
-        if parsed_base.scheme != "https" or not parsed_base.netloc or not metadata.get("api"):
+        # The instance directory's metadata shape can vary; the public directory
+        # itself is the source of candidate instances, so do not require an
+        # optional 'api' flag to be present.
+        if parsed_base.scheme != "https" or not parsed_base.netloc:
+            skipped += 1
             continue
         tried += 1
         if tried > 4:
@@ -611,6 +617,7 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
                 }
         except Exception as exc:
             print(f"Invidious fallback instance failed: {type(exc).__name__}: {exc}")
+    print(f"Invidious fallback finished: tried={min(tried, 4)}, skipped={skipped}, no captions retrieved")
     return None
 
 
