@@ -55,16 +55,59 @@
 }
 
 :root[data-theme="dark"] .navbar,
+:root[data-theme="dark"] .glass-card,
 :root[data-theme="dark"] .panel,
 :root[data-theme="dark"] .card,
 :root[data-theme="dark"] .transcript-panel,
 :root[data-theme="dark"] .chat-panel,
 :root[data-theme="dark"] .video-panel,
 :root[data-theme="dark"] .user-dropdown,
-:root[data-theme="dark"] .modal {
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .card-header,
+:root[data-theme="dark"] .chat-messages,
+:root[data-theme="dark"] .quick-actions {
   background-color: #111827;
   color: var(--text-primary);
   border-color: var(--border-light);
+}
+
+:root[data-theme="dark"] .btn-social {
+  background: #f9fafb;
+  color: #111827;
+  border-color: #d1d5db;
+}
+:root[data-theme="dark"] .btn-social:hover {
+  background: #e5e7eb;
+}
+:root[data-theme="dark"] .modal-divider,
+:root[data-theme="dark"] .modal-footer {
+  color: #cbd5e1;
+}
+:root[data-theme="dark"] .modal-close {
+  background: #374151;
+  color: #f9fafb;
+  border-color: #4b5563;
+}
+:root[data-theme="dark"] .chat-bubble.ai {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+:root[data-theme="dark"] .quick-action-btn,
+:root[data-theme="dark"] .citation-chip {
+  color: #ddd6fe;
+  border-color: #4b5563;
+  background: #1f2937;
+}
+:root[data-theme="dark"] .app-footer,
+:root[data-theme="dark"] .hero-subtitle,
+:root[data-theme="dark"] .feature-pill {
+  color: #cbd5e1;
+}
+:root[data-theme="dark"] .message.success {
+  color: #86efac;
+}
+:root[data-theme="dark"] .message.error {
+  color: #fca5a5;
 }
 
 :root[data-theme="dark"] input,
