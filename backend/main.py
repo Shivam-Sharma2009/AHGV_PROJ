@@ -550,7 +550,7 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
 
     tried = 0
     skipped = 0
-    print(f"Invidious directory returned {len(instances)} entries; selecting up to 4 HTTPS instances")
+    print(f"Invidious directory returned {len(instances)} entries; selecting up to 8 HTTPS instances")
     for item in instances:
         # The directory API commonly returns [domain, metadata], but tolerate
         # dictionaries and bare domain strings too.
@@ -577,7 +577,7 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
             continue
 
         tried += 1
-        if tried > 4:
+        if tried > 8:
             tried -= 1
             break
         print(f"Trying Invidious caption fallback instance {tried}: {parsed_base.netloc}")
@@ -631,7 +631,7 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
                 }
         except Exception as exc:
             print(f"Invidious fallback instance failed: {type(exc).__name__}: {exc}")
-    print(f"Invidious fallback finished: tried={min(tried, 4)}, skipped={skipped}, no captions retrieved")
+    print(f"Invidious fallback finished: tried={min(tried, 8)}, skipped={skipped}, no captions retrieved")
     return None
 
 
