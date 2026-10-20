@@ -170,6 +170,52 @@ a { text-decoration: none; color: inherit; }
     linear-gradient(180deg, #f3f0ff 0%, #ede9fe 15%, #e8e4f8 30%, #eef0f6 60%, #f5f5fa 100%);
 }
 
+/* Dark-mode fixes for the landing-page source selector and URL input */
+:root[data-theme="dark"] .url-bar {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(167, 139, 250, 0.08);
+}
+
+:root[data-theme="dark"] .url-bar input {
+  background: transparent;
+  color: #f9fafb;
+}
+
+:root[data-theme="dark"] .url-bar input::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+:root[data-theme="dark"] .source-toggle button {
+  background: #1f2937;
+  color: #d1d5db;
+  border-color: #374151;
+}
+
+:root[data-theme="dark"] .source-toggle button:hover {
+  background: #312e4b;
+}
+
+:root[data-theme="dark"] .source-toggle button.active {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+:root[data-theme="dark"] .feature-pill {
+  color: #d1d5db;
+}
+
+:root[data-theme="dark"] .feature-pill-icon {
+  background: rgba(167, 139, 250, 0.16);
+  color: #c4b5fd;
+}
+
+:root[data-theme="dark"] .app-footer {
+  color: #9ca3af;
+}
+
 /* Navbar */
 .navbar {
   position: sticky;
