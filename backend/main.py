@@ -549,6 +549,7 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
         return None
 
     tried = 0
+    print(f"Invidious directory returned {len(instances)} entries; checking up to 4 HTTPS API instances")
     for item in instances:
         if not isinstance(item, list) or len(item) < 2 or not isinstance(item[1], dict):
             continue
@@ -559,6 +560,7 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
         tried += 1
         if tried > 4:
             break
+        print(f"Trying Invidious caption fallback instance {tried}: {parsed_base.netloc}")
         try:
             captions_url = urljoin(base_url.rstrip("/") + "/", f"api/v1/captions/{video_id}")
             with urlopen(Request(captions_url, headers=headers), timeout=5) as response:
@@ -571,12 +573,13 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
                 None,
             )
             if not track or not track.get("url"):
+                print(f"No English/Hindi caption track at {parsed_base.netloc}")
                 continue
             caption_url = urljoin(base_url.rstrip("/") + "/", track["url"].lstrip("/"))
             with urlopen(Request(caption_url, headers=headers), timeout=8) as response:
                 caption_text = response.read().decode("utf-8", errors="replace")
             # Invidious caption endpoints return WebVTT, not XML.
-            blocks = re.split(r"\\r?\\n\\s*\\r?\\n", caption_text.strip())
+            blocks = re.split(r"\r?\n\s*\r?\n", caption_text.strip())
             segments = []
             for block in blocks:
                 lines = [line.strip() for line in block.splitlines() if line.strip()]
@@ -599,6 +602,7 @@ def _fetch_via_public_invidious(video_id: str, languages: list[str]) -> dict | N
                 if text_value:
                     segments.append({"start": start_seconds, "end": end_seconds, "text": text_value})
             if segments:
+                print(f"Invidious caption fallback succeeded at {parsed_base.netloc} with {len(segments)} segments")
                 return {
                     "video_id": video_id,
                     "language": track.get("languageCode", "unknown"),
