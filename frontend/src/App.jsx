@@ -204,6 +204,47 @@ function toAppUser(authUser) {
 }
 
 /* ============================================================
+   PUBLIC LANDING PAGE
+   ============================================================ */
+function LandingPage({ onSignIn, onSignUp }) {
+  return (
+    <main className="landing-page">
+      <section className="landing-hero">
+        <div className="landing-eyebrow"><span className="landing-eyebrow-dot" /> YOUR PERSONAL AI LEARNING COMPANION</div>
+        <h1>Learn with clarity.<br /><em>Grow with confidence.</em></h1>
+        <p className="landing-lede">Turn lectures into learning experiences. Study at your own pace with an AI tutor that helps you understand the ideas that matter.</p>
+        <div className="landing-cta-row">
+          <button className="landing-primary-cta" onClick={onSignUp}>Get started for free <span aria-hidden="true">↗</span></button>
+          <button className="landing-secondary-cta" onClick={onSignIn}>I already have an account</button>
+        </div>
+        <div className="landing-trust-line"><span aria-hidden="true">✦</span> Made for curious minds and lifelong learners</div>
+        <div className="landing-preview" aria-label="AI learning workspace preview">
+          <div className="landing-preview-top">
+            <div className="landing-preview-brand"><span className="landing-preview-mark">A</span><span>AHGV <b>Learning</b></span></div>
+            <span className="landing-preview-status"><i /> LEARNING WORKSPACE</span>
+          </div>
+          <div className="landing-preview-body">
+            <div className="landing-preview-video"><div className="landing-play">▶</div><span className="landing-preview-caption">LECTURE PLAYER</span><div className="landing-progress"><span /></div></div>
+            <div className="landing-preview-chat"><div className="landing-chat-kicker">YOUR AI TUTOR</div><h3>Understand it, don't just memorise it.</h3><p>Ask questions about your lecture and get explanations grounded in the lesson.</p><div className="landing-chat-question"><span>↳</span> Can you explain this with a simple example?</div><div className="landing-chat-answer"><span>✦</span> Of course. Let's break it down step by step…</div></div>
+          </div>
+          <div className="landing-preview-foot"><span>✦ AI-powered study support</span><span>Built for your pace</span></div>
+        </div>
+      </section>
+      <section className="landing-features" id="features">
+        <div className="landing-section-heading"><span>ONE WORKSPACE. MORE WAYS TO LEARN.</span><h2>Make every lesson count.</h2><p>Keep your attention on understanding, not searching for answers.</p></div>
+        <div className="landing-feature-grid">
+          <article className="landing-feature-card"><div className="landing-feature-icon">▶</div><h3>Learn from lectures</h3><p>Bring in a YouTube lecture or upload a video and study from one focused workspace.</p><span>01 / WATCH</span></article>
+          <article className="landing-feature-card"><div className="landing-feature-icon">✳</div><h3>Ask your AI tutor</h3><p>Ask questions about your lesson and explore tricky concepts with clear explanations.</p><span>02 / UNDERSTAND</span></article>
+          <article className="landing-feature-card"><div className="landing-feature-icon">↗</div><h3>Review with purpose</h3><p>Revisit key moments, request quick summaries, and make your study time count.</p><span>03 / REVISE</span></article>
+        </div>
+      </section>
+      <section className="landing-bottom-cta"><div><span className="landing-bottom-kicker">YOUR NEXT CHAPTER STARTS HERE</span><h2>Ready to learn a little differently?</h2><p>Create an account and make your next lecture more interactive.</p></div><button className="landing-primary-cta" onClick={onSignUp}>Create your account <span aria-hidden="true">↗</span></button></section>
+      <footer className="landing-footer"><span>AHGV Learning</span><span>Learn at your pace. Understand at your depth.</span><span>© {new Date().getFullYear()} AHGV Learning</span></footer>
+    </main>
+  );
+}
+
+/* ============================================================
    MAIN APP
    ============================================================ */
 function App() {
@@ -639,6 +680,8 @@ function App() {
         </div>
       </nav>
 
+      {user ? (
+        <>
       {/* ============================================================
           HERO
           ============================================================ */}
@@ -960,6 +1003,11 @@ function App() {
             </div>
           </div>
         </section>
+      )}
+
+        </>
+      ) : (
+        <LandingPage onSignIn={() => setAuthModal("signin")} onSignUp={() => setAuthModal("signup")} />
       )}
 
       {/* ============================================================
